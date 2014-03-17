@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name="django-notification",
+    name="django-anonymous-notification",
     version=__import__("notification").__version__,
     description="User notification management for the Django web framework",
     long_description=open("docs/usage.rst").read(),

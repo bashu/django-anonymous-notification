@@ -8,7 +8,7 @@ from notification.models import NoticeSetting, NoticeType, NOTICE_MEDIA
 
 
 @login_required
-def notice_settings(request):
+def notice_settings(request, extra_context=None):
     """
     The notice settings view.
 
@@ -27,6 +27,8 @@ def notice_settings(request):
             value is ``True`` or ``False`` depending on a ``request.POST``
             variable called ``form_label``, whose valid value is ``on``.
     """
+    if extra_context is None: extra_context = {}
+
     notice_types = NoticeType.objects.all()
     settings_table = []
     for notice_type in notice_types:
@@ -55,7 +57,10 @@ def notice_settings(request):
         "rows": settings_table,
     }
 
-    return render_to_response("notification/notice_settings.html", {
+    context = {
         "notice_types": notice_types,
         "notice_settings": settings,
-    }, context_instance=RequestContext(request))
+    }
+    context.update(extra_context)
+    return render_to_response("notification/notice_settings.html",
+                              context, context_instance=RequestContext(request))

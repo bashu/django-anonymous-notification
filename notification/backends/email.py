@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.mail import send_mail
+from django.contrib.auth.models import AnonymousUser
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext
 
@@ -10,6 +11,8 @@ class EmailBackend(backends.BaseBackend):
     spam_sensitivity = 2
 
     def can_send(self, user, notice_type):
+        if isinstance(user, AnonymousUser) and hasattr(user, 'email'):
+            return True
         can_send = super(EmailBackend, self).can_send(user, notice_type)
         if can_send and user.email:
             return True

@@ -12,6 +12,7 @@ from django.utils.translation import get_language, activate
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.six.moves import cPickle as pickle  # pylint: disable-msg=F
 
+from django.contrib.auth.models import AnonymousUser
 from .compat import AUTH_USER_MODEL
 
 from notification import backends
@@ -143,6 +144,14 @@ def send_now(users, label, extra_context=None, sender=None):
         "spam": "eggs",
         "foo": "bar",
     )
+
+    AnonymousUser instances can be passed in the ``users`` iterable. In order
+    for their notice to be sent, they need at least the ``email`` attribute
+    set. Setting other attributes may help the templates to generate custom
+    emails.
+    Note that if the ``email`` attribute is missing, no exception is raised.
+    In any case, no on-site notice is created for anonymous users.
+
     """
     sent = False
     if extra_context is None:
@@ -155,14 +164,15 @@ def send_now(users, label, extra_context=None, sender=None):
     for user in users:
         # get user language for user from language store defined in
         # NOTIFICATION_LANGUAGE_MODULE setting
-        try:
-            language = get_notification_language(user)
-        except LanguageStoreNotAvailable:
-            language = None
+        if not isinstance(user, AnonymousUser):
+            try:
+                language = get_notification_language(user)
+            except LanguageStoreNotAvailable:
+                language = None
 
-        if language is not None:
-            # activate the user's language
-            activate(language)
+            if language is not None:
+                # activate the user's language
+                activate(language)
 
         for backend in NOTIFICATION_BACKENDS.values():
             if backend.can_send(user, notice_type):
@@ -200,11 +210,16 @@ def queue(users, label, extra_context=None, sender=None):
     Queue the notification in NoticeQueueBatch. This allows for large amounts
     of user notifications to be deferred to a seperate process running outside
     the webserver.
+
+    If the ``users`` argument contains one or more AnonymousUser instances,
+    all notices are sent with ``send_now()``.
     """
     if extra_context is None:
         extra_context = {}
     if isinstance(users, QuerySet):
         users = [row["pk"] for row in users.values("pk")]
+    elif any((isinstance(user, AnonymousUser) for user in users)):
+        return send_now(users, label, extra_context=extra_context)
     else:
         users = [user.pk for user in users]
     notices = []

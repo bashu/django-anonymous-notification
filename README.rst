@@ -1,5 +1,5 @@
 ===================
-django-notification
+django-anonymous-notification
 ===================
 
 .. image:: https://travis-ci.org/pinax/django-notification.png
